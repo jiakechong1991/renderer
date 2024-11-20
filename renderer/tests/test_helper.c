@@ -169,6 +169,9 @@ static vec3_t get_light_dir(record_t *record) {
 }
 
 void test_enter_mainloop(tickfunc_t *tickfunc, void *userdata) {
+    /*
+    userdata: 用户的scene对象
+    */
     window_t *window;
     framebuffer_t *framebuffer;
     camera_t *camera;
@@ -180,9 +183,13 @@ void test_enter_mainloop(tickfunc_t *tickfunc, void *userdata) {
     float print_time;
     int num_frames;
 
+    /*创建一个窗口*/
     window = window_create(WINDOW_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT);
+    /*创建窗口的framebuffer缓冲区*/
     framebuffer = framebuffer_create(WINDOW_WIDTH, WINDOW_HEIGHT);
+    /*宽高比*/
     aspect = (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT;
+    /*创建摄像机*/
     camera = camera_create(CAMERA_POSITION, CAMERA_TARGET, aspect);
 
     memset(&record, 0, sizeof(record_t));
@@ -207,6 +214,7 @@ void test_enter_mainloop(tickfunc_t *tickfunc, void *userdata) {
         float curr_time = platform_get_time();
         float delta_time = curr_time - prev_time;
 
+        /*根据输入，进行设置调整*/
         update_camera(window, camera, &record);
         update_light(window, delta_time, &record);
         update_click(curr_time, &record);
@@ -220,8 +228,11 @@ void test_enter_mainloop(tickfunc_t *tickfunc, void *userdata) {
         /*每个tick周期，调用一次这个函数，相当于给用户暴露一个接口*/
         tickfunc(&context, userdata);
 
+        /*渲染的核心函数*/
         window_draw_buffer(window, framebuffer);
         num_frames += 1;
+
+        /*帧率计算*/
         if (curr_time - print_time >= 1) {
             int sum_millis = (int)((curr_time - print_time) * 1000);
             int avg_millis = sum_millis / num_frames;
