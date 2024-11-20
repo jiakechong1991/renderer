@@ -217,6 +217,7 @@ void test_enter_mainloop(tickfunc_t *tickfunc, void *userdata) {
         context.double_click = record.double_click;
         context.frame_time = curr_time;
         context.delta_time = delta_time;
+        /*每个tick周期，调用一次这个函数，相当于给用户暴露一个接口*/
         tickfunc(&context, userdata);
 
         window_draw_buffer(window, framebuffer);
@@ -325,12 +326,14 @@ scene_t *test_create_scene(creator_t creators[], const char *scene_name) {
         for (i = 0; creators[i].scene_name != NULL; i++) {
             if (strcmp(creators[i].scene_name, scene_name) == 0) {
                 printf("scene: %s\n", scene_name);
+                /*调用该场景的创建函数*/
                 scene = creators[i].create_scene();
                 break;
             }
         }
     }
     if (scene) {
+        printf("打印该场景的详细信息\n");
         int num_faces = count_num_faces(scene);
         bbox_t bbox = get_scene_bbox(scene);
         vec3_t center = vec3_div(vec3_add(bbox.min, bbox.max), 2);
@@ -347,7 +350,7 @@ scene_t *test_create_scene(creator_t creators[], const char *scene_name) {
         printf("shadow: %s\n", with_shadow ? "on" : "off");
         printf("ambient: %s\n", with_ambient ? "on" : "off");
         printf("punctual: %s\n", with_punctual ? "on" : "off");
-    } else {
+    } else { /*场景打开失败*/
         int i;
         printf("scene not found: %s\n", scene_name);
         printf("available scenes: ");
