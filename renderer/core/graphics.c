@@ -58,9 +58,10 @@ void framebuffer_clear_depth(framebuffer_t *framebuffer, float depth) {
 
 #define MAX_VARYINGS 10
 
+/*这其实是 模拟opengl, 将shader封装在了Program上，这个program就代表了一种渲染管线配置*/
 struct program {
-    vertex_shader_t *vertex_shader;
-    fragment_shader_t *fragment_shader;
+    vertex_shader_t *vertex_shader;  /*配置的顶点shader*/
+    fragment_shader_t *fragment_shader; /*配置的fragment shader*/
     int sizeof_attribs;
     int sizeof_varyings;
     int sizeof_uniforms;
@@ -522,6 +523,9 @@ static int rasterize_triangle(framebuffer_t *framebuffer, program_t *program,
 }
 
 void graphics_draw_triangle(framebuffer_t *framebuffer, program_t *program) {
+    /*
+    绘制一个三角形，这是 渲染的核心流程
+    */
     int num_vertices;
     int i;
 
@@ -533,12 +537,12 @@ void graphics_draw_triangle(framebuffer_t *framebuffer, program_t *program) {
         program->in_coords[i] = clip_coord;
     }
 
-    /* triangle clipping */
+    /* triangle clipping[裁减] */
     num_vertices = clip_triangle(program->sizeof_varyings,
                                  program->in_coords, program->in_varyings,
                                  program->out_coords, program->out_varyings);
 
-    /* triangle assembly */
+    /* triangle[三角形] assembly[装配] */
     for (i = 0; i < num_vertices - 2; i++) {
         int index0 = 0;
         int index1 = i + 1;
@@ -554,6 +558,7 @@ void graphics_draw_triangle(framebuffer_t *framebuffer, program_t *program) {
         varyings[1] = program->out_varyings[index1];
         varyings[2] = program->out_varyings[index2];
 
+        /*执行光栅化*/
         is_culled = rasterize_triangle(framebuffer, program,
                                        clip_coords, varyings);
         if (is_culled) {

@@ -206,6 +206,7 @@ static vec4_t common_fragment_shader(blinn_varyings_t *varyings,
                                      blinn_uniforms_t *uniforms,
                                      int *discard,
                                      int backface) {
+    /*大名鼎鼎的布林冯 着色模型*/
     material_t material = get_material(varyings, uniforms, backface);
     if (uniforms->alpha_cutoff > 0 && material.alpha < uniforms->alpha_cutoff) {
         *discard = 1;
@@ -294,8 +295,11 @@ static void update_model(model_t *model, perframe_t *perframe) {
 
 static void draw_model(model_t *model, framebuffer_t *framebuffer,
                        int shadow_pass) {
+    /*获得这个模型的mesh面*/
     mesh_t *mesh = model->mesh;
+    /*获得面个数*/
     int num_faces = mesh_get_num_faces(mesh);
+    /*获得顶点列表*/
     vertex_t *vertices = mesh_get_vertices(mesh);
     program_t *program = model->program;
     blinn_uniforms_t *uniforms;
@@ -305,6 +309,7 @@ static void draw_model(model_t *model, framebuffer_t *framebuffer,
     uniforms = (blinn_uniforms_t*)program_get_uniforms(model->program);
     uniforms->shadow_pass = shadow_pass;
     for (i = 0; i < num_faces; i++) {
+        /*逐个面进行绘制： 准备该三角面的顶点数据*/
         for (j = 0; j < 3; j++) {
             vertex_t vertex = vertices[i * 3 + j];
             attribs = (blinn_attribs_t*)program_get_attribs(program, j);
@@ -364,7 +369,8 @@ model_t *blinn_create_model(const char *mesh, mat4_t transform,
     model->attached = attached;
     model->opaque = !material->enable_blend;
     model->distance = 0;
-    model->update = update_model;
+    /*这是三个很重要的函数*/
+    model->update = update_model;  /*更新模型*/
     model->draw = draw_model;
     model->release = release_model;
 

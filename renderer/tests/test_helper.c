@@ -225,10 +225,13 @@ void test_enter_mainloop(tickfunc_t *tickfunc, void *userdata) {
         context.double_click = record.double_click;
         context.frame_time = curr_time;
         context.delta_time = delta_time;
-        /*每个tick周期，调用一次这个函数，相当于给用户暴露一个接口*/
+        /*
+        每个tick周期，调用一次这个用户函数
+        这才是真正的渲染函数
+        */
         tickfunc(&context, userdata);
 
-        /*渲染的核心函数*/
+        /*绘制窗体之类*/
         window_draw_buffer(window, framebuffer);
         num_frames += 1;
 
@@ -389,6 +392,7 @@ static mat4_t get_light_proj_matrix(float half_w, float half_h,
 }
 
 perframe_t test_build_perframe(scene_t *scene, context_t *context) {
+    /*光的方向*/
     vec3_t light_dir = vec3_normalize(context->light_dir);
     camera_t *camera = context->camera;
     perframe_t perframe;
@@ -447,6 +451,7 @@ void test_draw_scene(scene_t *scene, framebuffer_t *framebuffer,
     int num_models = darray_size(models);
     int i;
 
+    /*逐个操作模型*/
     for (i = 0; i < num_models; i++) {
         model_t *model = models[i];
         model->update(model, perframe);

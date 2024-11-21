@@ -23,6 +23,12 @@ static creator_t g_creators[] = {
 };
 
 static void tick_function(context_t *context, void *userdata) {
+    /*
+    渲染就在这个函数中执行
+    parameters:
+    context: 环境上下文：光照、相机等
+    userdata: 场景scene：物体、材质等
+    */
     scene_t *scene = (scene_t*)userdata;
     perframe_t perframe = test_build_perframe(scene, context);
     test_draw_scene(scene, context->framebuffer, &perframe);

@@ -8,9 +8,9 @@
 #include "texture.h"
 
 typedef struct {
-    float frame_time;
+    float frame_time; /*帧时间*/
     float delta_time;
-    vec3_t light_dir;
+    vec3_t light_dir; /*光源方向*/
     vec3_t camera_pos;
     mat4_t light_view_matrix;
     mat4_t light_proj_matrix;
