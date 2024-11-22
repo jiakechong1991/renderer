@@ -20,7 +20,7 @@ typedef struct {
     float punctual_intensity;
     texture_t *shadow_map;
     int layer_view;
-} perframe_t;
+} perframe_t;  /*这是 当前帧的各种场景*/
 
 typedef struct model {
     mesh_t *mesh;

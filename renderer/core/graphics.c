@@ -70,7 +70,7 @@ struct program {
     /* for shaders */
     void *shader_attribs[3];
     void *shader_varyings;
-    void *shader_uniforms;
+    void *shader_uniforms;  /*该shader的uniform参数列表*/
     /* for clipping */
     vec4_t in_coords[MAX_VARYINGS];
     vec4_t out_coords[MAX_VARYINGS];
@@ -472,13 +472,13 @@ static int rasterize_triangle(framebuffer_t *framebuffer, program_t *program,
     bbox_t bbox;
     int i, x, y;
 
-    /* perspective division */
+    /* perspective division[透视除法] */
     for (i = 0; i < 3; i++) {
         vec3_t clip_coord = vec3_from_vec4(clip_coords[i]);
         ndc_coords[i] = vec3_div(clip_coord, clip_coords[i].w);
     }
 
-    /* back-face culling */
+    /* back-face culling [背面剔除]*/
     backface = is_back_facing(ndc_coords);
     if (backface && !program->double_sided) {
         return 1;
@@ -513,6 +513,7 @@ static int rasterize_triangle(framebuffer_t *framebuffer, program_t *program,
                     interpolate_varyings(varyings, program->shader_varyings,
                                          program->sizeof_varyings,
                                          weights, recip_w);
+                    /*调用： fragment shader ， perform blending， write color和depth*/
                     draw_fragment(framebuffer, program, backface, index, depth);
                 }
             }
@@ -524,7 +525,10 @@ static int rasterize_triangle(framebuffer_t *framebuffer, program_t *program,
 
 void graphics_draw_triangle(framebuffer_t *framebuffer, program_t *program) {
     /*
-    绘制一个三角形，这是 渲染的核心流程
+    ！渲染流程函数！
+    绘制一个三角形，这是 渲染的核心流程（是program的具体执行位置）
+    其中可以看出，只有vertex shader和fragment shader被薄露了出来，
+    其余的都封装起来了（现实情况是被封装的部分，一般是GPU进行了硬件固化加速）
     */
     int num_vertices;
     int i;
@@ -558,7 +562,7 @@ void graphics_draw_triangle(framebuffer_t *framebuffer, program_t *program) {
         varyings[1] = program->out_varyings[index1];
         varyings[2] = program->out_varyings[index2];
 
-        /*执行光栅化*/
+        /*执行光栅化， 里面执行了： */
         is_culled = rasterize_triangle(framebuffer, program,
                                        clip_coords, varyings);
         if (is_culled) {

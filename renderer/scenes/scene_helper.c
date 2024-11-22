@@ -588,6 +588,7 @@ scene_t *scene_from_file(const char *filename, mat4_t root) {
         scene_blinn_t *materials = read_blinn_materials(file);
         scene_transform_t *transforms = read_transforms(file);
         scene_model_t *models = read_models(file);
+        /*用blinn渲染算法，创建scene*/
         scene = create_blinn_scene(&light, materials, transforms, models, root);
         darray_free(materials);
         darray_free(transforms);

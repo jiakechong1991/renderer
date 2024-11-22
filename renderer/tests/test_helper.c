@@ -391,6 +391,7 @@ static mat4_t get_light_proj_matrix(float half_w, float half_h,
     return mat4_orthographic(half_w, half_h, z_near, z_far);
 }
 
+/*构建当前帧的各种场景信息*/
 perframe_t test_build_perframe(scene_t *scene, context_t *context) {
     /*光的方向*/
     vec3_t light_dir = vec3_normalize(context->light_dir);
@@ -473,11 +474,13 @@ void test_draw_scene(scene_t *scene, framebuffer_t *framebuffer,
     }
 
     sort_models(models, perframe->camera_view_matrix);
+    /*清除framebuffer的color和depth*/
     framebuffer_clear_color(framebuffer, scene->background);
     framebuffer_clear_depth(framebuffer, 1);
     if (skybox == NULL || perframe->layer_view >= 0) {
         for (i = 0; i < num_models; i++) {
             model_t *model = models[i];
+            /*每个model调用自己draw命令*/
             model->draw(model, framebuffer, 0);
         }
     } else {

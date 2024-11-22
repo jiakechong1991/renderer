@@ -210,9 +210,9 @@ static vec4_t common_fragment_shader(blinn_varyings_t *varyings,
     material_t material = get_material(varyings, uniforms, backface);
     if (uniforms->alpha_cutoff > 0 && material.alpha < uniforms->alpha_cutoff) {
         *discard = 1;
-        return vec4_new(0, 0, 0, 0);
+        return vec4_new(0, 0, 0, 0);  /*返回该点的颜色*/
     } else {
-        vec3_t color = material.emission;
+        vec3_t color = material.emission; /*材质的基础颜色*/
 
         if (uniforms->ambient_intensity > 0) {
             vec3_t ambient = material.diffuse;
@@ -237,6 +237,7 @@ static vec4_t common_fragment_shader(blinn_varyings_t *varyings,
     }
 }
 
+/*冯 pragment shader*/
 vec4_t blinn_fragment_shader(void *varyings_, void *uniforms_,
                              int *discard, int backface) {
     blinn_varyings_t *varyings = (blinn_varyings_t*)varyings_;
@@ -301,17 +302,22 @@ static void draw_model(model_t *model, framebuffer_t *framebuffer,
     int num_faces = mesh_get_num_faces(mesh);
     /*获得顶点列表*/
     vertex_t *vertices = mesh_get_vertices(mesh);
-    program_t *program = model->program;
+    program_t *program = model->program;  /*该model 挂在的 渲染管线program*/
     blinn_uniforms_t *uniforms;
     blinn_attribs_t *attribs;
     int i, j;
 
+    /*获得该program上挂在的几个uniform参数*/
     uniforms = (blinn_uniforms_t*)program_get_uniforms(model->program);
     uniforms->shadow_pass = shadow_pass;
-    for (i = 0; i < num_faces; i++) {
+    for (i = 0; i < num_faces; i++) {  /*这里的model个数*face面数 就是GPU 可以直接并行的最大并行数量*/
         /*逐个面进行绘制： 准备该三角面的顶点数据*/
         for (j = 0; j < 3; j++) {
             vertex_t vertex = vertices[i * 3 + j];
+            /*
+            将这些要绘制的点信息，借助指针，写入program的shader_attribs属性上，
+            你看该program的一次循环只负责绘制一个三角形，这种解耦方式，使得非常容易并行
+            */
             attribs = (blinn_attribs_t*)program_get_attribs(program, j);
             attribs->position = vertex.position;
             attribs->texcoord = vertex.texcoord;
@@ -349,6 +355,7 @@ model_t *blinn_create_model(const char *mesh, mat4_t transform,
     program_t *program;
     model_t *model;
 
+    /*这是整个shader的封装： program*/
     program = program_create(blinn_vertex_shader, blinn_fragment_shader,
                              sizeof_attribs, sizeof_varyings, sizeof_uniforms,
                              material->double_sided, material->enable_blend);
@@ -363,7 +370,7 @@ model_t *blinn_create_model(const char *mesh, mat4_t transform,
 
     model = (model_t*)malloc(sizeof(model_t));
     model->mesh = cache_acquire_mesh(mesh);
-    model->program = program;
+    model->program = program; /*该model的渲染pipeline*/
     model->transform = transform;
     model->skeleton = cache_acquire_skeleton(skeleton);
     model->attached = attached;
