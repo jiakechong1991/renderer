@@ -325,6 +325,7 @@ static void draw_model(model_t *model, framebuffer_t *framebuffer,
             attribs->joint = vertex.joint;
             attribs->weight = vertex.weight;
         }
+        /*该三角形，要绘制的数据，都在 program的shader_attribs上*/
         graphics_draw_triangle(framebuffer, program);
     }
 }
