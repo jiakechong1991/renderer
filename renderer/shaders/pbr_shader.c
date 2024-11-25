@@ -559,6 +559,8 @@ static void draw_model(model_t *model, framebuffer_t *framebuffer,
     uniforms = (pbr_uniforms_t*)program_get_uniforms(model->program);
     uniforms->shadow_pass = shadow_pass;
     for (i = 0; i < num_faces; i++) {
+        /*渲染三角面*/
+        /*准备面数据*/
         for (j = 0; j < 3; j++) {
             vertex_t vertex = vertices[i * 3 + j];
             attribs = (pbr_attribs_t*)program_get_attribs(program, j);
@@ -569,6 +571,8 @@ static void draw_model(model_t *model, framebuffer_t *framebuffer,
             attribs->joint = vertex.joint;
             attribs->weight = vertex.weight;
         }
+        /*开始渲染*/
+        /*本项目的几种渲染算法，起始只有 顶点shader和着色shader有区别，其他模块都是共用的*/
         graphics_draw_triangle(framebuffer, program);
     }
 }
@@ -605,16 +609,17 @@ static model_t *create_model(const char *mesh, mat4_t transform,
                              sizeof_attribs, sizeof_varyings, sizeof_uniforms,
                              double_sided, enable_blend);
 
+    /*设置该modle的各种资源*/
     model = (model_t*)malloc(sizeof(model_t));
     model->mesh = cache_acquire_mesh(mesh);
-    model->program = program;
+    model->program = program;  /*设置渲染管线*/
     model->transform = transform;
     model->skeleton = cache_acquire_skeleton(skeleton);
     model->attached = attached;
     model->opaque = !enable_blend;
     model->distance = 0;
     model->update = update_model;
-    model->draw = draw_model;
+    model->draw = draw_model;  /*render入口*/
     model->release = release_model;
 
     return model;

@@ -78,6 +78,7 @@ struct program {
     void *out_varyings[MAX_VARYINGS];
 };
 
+/*创建渲染管线*/
 program_t *program_create(
         vertex_shader_t *vertex_shader, fragment_shader_t *fragment_shader,
         int sizeof_attribs, int sizeof_varyings, int sizeof_uniforms,
@@ -90,8 +91,8 @@ program_t *program_create(
 
     program = (program_t*)malloc(sizeof(program_t));
 
-    program->vertex_shader = vertex_shader;
-    program->fragment_shader = fragment_shader;
+    program->vertex_shader = vertex_shader;  /*设置顶点shader*/
+    program->fragment_shader = fragment_shader; /*设置着色shader*/
     program->sizeof_attribs = sizeof_attribs;
     program->sizeof_varyings = sizeof_varyings;
     program->sizeof_uniforms = sizeof_uniforms;
@@ -527,7 +528,7 @@ void graphics_draw_triangle(framebuffer_t *framebuffer, program_t *program) {
     /*
     ！渲染流程函数！
     绘制一个三角形，这是 渲染的核心流程（是program的具体执行位置）
-    其中可以看出，只有vertex shader和fragment shader被薄露了出来，
+    其中可以看出，只有vertex shader和fragment shader被薄露了出来【各种算法共用整个流程】
     其余的都封装起来了（现实情况是被封装的部分，一般是GPU进行了硬件固化加速）
     */
     int num_vertices;
