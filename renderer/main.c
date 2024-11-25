@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
 
     /*解析命令行参数*/
     if (argc > 1) {
-        testname = argv[1];
+        testname = argv[1];  /*用户输入的渲染类型*/
         for (i = 0; i < num_testcases; i++) {
             if (strcmp(g_testcases[i].testname, testname) == 0) {
                 testfunc = g_testcases[i].testfunc;
@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
             }
         }
     } else {
-        i = rand() % num_testcases;
+        i = rand() % num_testcases;  /*随机一个类型*/
         testname = g_testcases[i].testname;
         testfunc = g_testcases[i].testfunc;
     }

@@ -5,8 +5,8 @@
 
 typedef struct {
     int width, height;
-    unsigned char *color_buffer;
-    float *depth_buffer;
+    unsigned char *color_buffer;  /*颜色buffer*/
+    float *depth_buffer; /*深度buffer*/
 } framebuffer_t;
 
 typedef struct program program_t;

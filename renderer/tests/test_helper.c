@@ -185,7 +185,7 @@ void test_enter_mainloop(tickfunc_t *tickfunc, void *userdata) {
 
     /*创建一个窗口*/
     window = window_create(WINDOW_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT);
-    /*创建窗口的framebuffer缓冲区*/
+    /*创建窗口 同大小的framebuffer缓冲区*/
     framebuffer = framebuffer_create(WINDOW_WIDTH, WINDOW_HEIGHT);
     /*宽高比*/
     aspect = (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT;
@@ -211,8 +211,8 @@ void test_enter_mainloop(tickfunc_t *tickfunc, void *userdata) {
     prev_time = platform_get_time();
     print_time = prev_time;
     while (!window_should_close(window)) {
-        float curr_time = platform_get_time();
-        float delta_time = curr_time - prev_time;
+        float curr_time = platform_get_time();  /*获得当前时间戳*/
+        float delta_time = curr_time - prev_time;  /*获得 两帧之间的差值*/
 
         /*根据输入，进行设置调整*/
         update_camera(window, camera, &record);
@@ -448,17 +448,17 @@ static void sort_models(model_t **models, mat4_t view_matrix) {
 void test_draw_scene(scene_t *scene, framebuffer_t *framebuffer,
                      perframe_t *perframe) {
     model_t *skybox = scene->skybox;
-    model_t **models = scene->models;
-    int num_models = darray_size(models);
+    model_t **models = scene->models; /*该场景的modle列表*/
+    int num_models = darray_size(models); 
     int i;
 
     /*逐个操作模型*/
     for (i = 0; i < num_models; i++) {
         model_t *model = models[i];
-        model->update(model, perframe);
+        model->update(model, perframe);  /*将modle更新到【当前帧】中*/
     }
     if (skybox != NULL) {
-        skybox->update(skybox, perframe);
+        skybox->update(skybox, perframe);  /*将 skybox更新到[当前帧]中*/
     }
 
     if (scene->shadow_buffer && scene->shadow_map) {

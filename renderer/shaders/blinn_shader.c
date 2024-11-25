@@ -59,19 +59,26 @@ static vec4_t shadow_vertex_shader(blinn_attribs_t *attribs,
 static vec4_t common_vertex_shader(blinn_attribs_t *attribs,
                                    blinn_varyings_t *varyings,
                                    blinn_uniforms_t *uniforms) {
+    /*总的说：将顶点位置，从模型空间变换到 裁减空间 --- 返回的是裁减空间中的坐标*/
     mat4_t model_matrix = get_model_matrix(attribs, uniforms);
     mat3_t normal_matrix = get_normal_matrix(attribs, uniforms);
     mat4_t camera_vp_matrix = uniforms->camera_vp_matrix;
     mat4_t light_vp_matrix = uniforms->light_vp_matrix;
 
+    /*将位置变成奇次空间*/
     vec4_t input_position = vec4_from_vec3(attribs->position, 1);
+    /*将模型空间坐标 变换到 世界空间*/
     vec4_t world_position = mat4_mul_vec4(model_matrix, input_position);
+    /*将世界空间坐标 变换到 裁减空间*/
     vec4_t clip_position = mat4_mul_vec4(camera_vp_matrix, world_position);
+    /*将世界空间坐标 变换到 光源裁减空间*/
     vec4_t depth_position = mat4_mul_vec4(light_vp_matrix, world_position);
 
+    /*顶点的法线从模型空间转换到世界空间*/
     vec3_t input_normal = attribs->normal;
     vec3_t world_normal = mat3_mul_vec3(normal_matrix, input_normal);
 
+    /*存储在 varying结构体中*/
     varyings->world_position = vec3_from_vec4(world_position);
     varyings->depth_position = vec3_from_vec4(depth_position);
     varyings->texcoord = attribs->texcoord;
@@ -83,7 +90,7 @@ vec4_t blinn_vertex_shader(void *attribs_, void *varyings_, void *uniforms_) {
     blinn_attribs_t *attribs = (blinn_attribs_t*)attribs_;
     blinn_varyings_t *varyings = (blinn_varyings_t*)varyings_;
     blinn_uniforms_t *uniforms = (blinn_uniforms_t*)uniforms_;
-
+    /*将模型空间中的 顶点坐标，变换到 裁减空间*/
     if (uniforms->shadow_pass) {
         return shadow_vertex_shader(attribs, varyings, uniforms);
     } else {
@@ -294,9 +301,10 @@ static void update_model(model_t *model, perframe_t *perframe) {
     uniforms->shadow_map = perframe->shadow_map;
 }
 
-static void draw_model(model_t *model, framebuffer_t *framebuffer,
-                       int shadow_pass) {
-    /*获得这个模型的mesh面*/
+static void draw_model(model_t *model, 
+    framebuffer_t *framebuffer, /*缓冲区*/
+    int shadow_pass) {
+    /*获得这个模型的mesh列表*/
     mesh_t *mesh = model->mesh;
     /*获得面个数*/
     int num_faces = mesh_get_num_faces(mesh);
@@ -307,7 +315,7 @@ static void draw_model(model_t *model, framebuffer_t *framebuffer,
     blinn_attribs_t *attribs;
     int i, j;
 
-    /*获得该program上挂在的几个uniform参数*/
+    /*获得该program上挂载的几个uniform参数*/
     uniforms = (blinn_uniforms_t*)program_get_uniforms(model->program);
     uniforms->shadow_pass = shadow_pass;
     for (i = 0; i < num_faces; i++) {  /*这里的model个数*face面数 就是GPU 可以直接并行的最大并行数量*/
@@ -318,6 +326,7 @@ static void draw_model(model_t *model, framebuffer_t *framebuffer,
             将这些要绘制的点信息，借助指针，写入program的shader_attribs属性上，
             你看该program的一次循环只负责绘制一个三角形，这种解耦方式，使得非常容易并行
             */
+            /*将三个顶点的信息，填充到该program的attribs属性列表中*/
             attribs = (blinn_attribs_t*)program_get_attribs(program, j);
             attribs->position = vertex.position;
             attribs->texcoord = vertex.texcoord;
@@ -346,41 +355,51 @@ static texture_t *acquire_color_texture(const char *filename) {
     return cache_acquire_texture(filename, USAGE_LDR_COLOR);
 }
 
+/*为一个modle构建渲染需要的数据*/
 model_t *blinn_create_model(const char *mesh, mat4_t transform,
                             const char *skeleton, int attached,
                             blinn_material_t *material) {
     int sizeof_attribs = sizeof(blinn_attribs_t);
     int sizeof_varyings = sizeof(blinn_varyings_t);
-    int sizeof_uniforms = sizeof(blinn_uniforms_t);
+    int sizeof_uniforms = sizeof(blinn_uniforms_t);  /*这就是 blinn_uniforms_t中的所有属性成员*/
     blinn_uniforms_t *uniforms;
     program_t *program;
     model_t *model;
 
-    /*这是整个shader的封装： program*/
+    /*这是整个render管线的封装： program*/
     program = program_create(blinn_vertex_shader, blinn_fragment_shader,
                              sizeof_attribs, sizeof_varyings, sizeof_uniforms,
                              material->double_sided, material->enable_blend);
 
+    /*uiniform是一个全局变量， 这个变量是可以在shader中访问的。 相当于shader要渲染什么，
+    数据是通过这个uniform传递的
+    */
     uniforms = (blinn_uniforms_t*)program_get_uniforms(program);
+    /*基础色*/
     uniforms->basecolor = material->basecolor;
+    /*光滑度*/
     uniforms->shininess = material->shininess;
+    /*环境光*/
     uniforms->diffuse_map = acquire_color_texture(material->diffuse_map);
+    /*高光*/
     uniforms->specular_map = acquire_color_texture(material->specular_map);
+    /*自发光*/
     uniforms->emission_map = acquire_color_texture(material->emission_map);
+    /*透明度*/
     uniforms->alpha_cutoff = material->alpha_cutoff;
 
     model = (model_t*)malloc(sizeof(model_t));
-    model->mesh = cache_acquire_mesh(mesh);
+    model->mesh = cache_acquire_mesh(mesh);  /*mesh数据*/
     model->program = program; /*该model的渲染pipeline*/
     model->transform = transform;
-    model->skeleton = cache_acquire_skeleton(skeleton);
+    model->skeleton = cache_acquire_skeleton(skeleton); /*骨骼数据*/
     model->attached = attached;
-    model->opaque = !material->enable_blend;
+    model->opaque = !material->enable_blend; 
     model->distance = 0;
     /*这是三个很重要的函数*/
     model->update = update_model;  /*更新模型*/
-    model->draw = draw_model;
-    model->release = release_model;
+    model->draw = draw_model;   /*绘制模型*/
+    model->release = release_model; /*释放模型*/
 
-    return model;
+    return model; /*至此，绘制该model的参数设置完毕*/
 }

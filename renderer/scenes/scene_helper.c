@@ -403,17 +403,21 @@ static scene_t *create_scene(scene_light_t *light, model_t **models) {
                         shadow_width, shadow_height);
 }
 
-static scene_t *create_blinn_scene(scene_light_t *scene_light,
+/*用blinn渲染管线，创建scene*/
+static scene_t *create_blinn_scene(scene_light_t *scene_light, 
                                    scene_blinn_t *scene_materials,
                                    scene_transform_t *scene_transforms,
                                    scene_model_t *scene_models,
                                    mat4_t root_transform) {
+    /*使用到的材质的个数*/
     int num_materials = darray_size(scene_materials);
     int num_transforms = darray_size(scene_transforms);
+    /*该场景使用到的modle的个数*/
     int num_models = darray_size(scene_models);
-    model_t **models = NULL;
+    model_t **models = NULL;  /*存储modle的数组*/
     int i;
 
+    /*对每个model逐个进行 关联*/
     for (i = 0; i < num_models; i++) {
         scene_blinn_t scene_material;
         scene_transform_t scene_transform;
@@ -431,13 +435,18 @@ static scene_t *create_blinn_scene(scene_light_t *scene_light,
         UNUSED_VAR(num_transforms);
         UNUSED_VAR(num_materials);
 
+        /*该modle的mesh路径*/
         mesh = wrap_path(scene_model.mesh);
+        /*该modle的骨骼路径*/
         skeleton = wrap_path(scene_model.skeleton);
+        /*该modle是否被骨骼关联*/
         attached = scene_model.attached;
 
         scene_transform = scene_transforms[scene_model.transform];
+        /*获取该modle的transform矩阵*/
         transform = mat4_mul_mat4(root_transform, scene_transform.matrix);
 
+        /*获取该modle的材质*/
         scene_material = scene_materials[scene_model.material];
         material.basecolor = scene_material.basecolor;
         material.shininess = scene_material.shininess;
@@ -573,23 +582,32 @@ static scene_t *create_pbrs_scene(scene_light_t *scene_light,
 }
 
 scene_t *scene_from_file(const char *filename, mat4_t root) {
+    /*
+    root: model的root坐标，旋转，缩放
+    filename: scene文件
+    */
     char scene_type[LINE_SIZE];
     scene_t *scene;
     FILE *file;
     int items;
-
+    /*
+    该文件包含：scene类型，light，各种material文件列表，transform，model列表
+    */
     file = fopen(filename, "rb");
     assert(file != NULL);
+    /*读取scene类型*/
     items = fscanf(file, " type: %s", scene_type);
     assert(items == 1);
     UNUSED_VAR(items);
     if (equals_to(scene_type, "blinn")) {
+        /*读取 该场景配置文件中  配置的light，material，transform，model等文件*/
         scene_light_t light = read_light(file);
         scene_blinn_t *materials = read_blinn_materials(file);
         scene_transform_t *transforms = read_transforms(file);
         scene_model_t *models = read_models(file);
-        /*用blinn渲染算法，创建scene*/
+        /*用blinn渲染管线，创建scene*/
         scene = create_blinn_scene(&light, materials, transforms, models, root);
+        /*释放内存*/
         darray_free(materials);
         darray_free(transforms);
         darray_free(models);
@@ -598,6 +616,7 @@ scene_t *scene_from_file(const char *filename, mat4_t root) {
         scene_pbrm_t *materials = read_pbrm_materials(file);
         scene_transform_t *transforms = read_transforms(file);
         scene_model_t *models = read_models(file);
+        /*用pbrm渲染管线，创建scene*/
         scene = create_pbrm_scene(&light, materials, transforms, models, root);
         darray_free(materials);
         darray_free(transforms);

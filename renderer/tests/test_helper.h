@@ -15,8 +15,8 @@ typedef struct {
 } context_t;
 
 typedef struct {
-    const char *scene_name;
-    scene_t *(*create_scene)(void);
+    const char *scene_name;  /*scene名称*/
+    scene_t *(*create_scene)(void);  /*创建函数的指针*/
 } creator_t;
 
 typedef void tickfunc_t(context_t *context, void *userdata);

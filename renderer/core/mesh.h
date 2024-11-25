@@ -6,12 +6,12 @@
 typedef struct mesh mesh_t;
 
 typedef struct {
-    vec3_t position;
-    vec2_t texcoord;
-    vec3_t normal;
-    vec4_t tangent;
-    vec4_t joint;
-    vec4_t weight;
+    vec3_t position;  /*顶点坐标*/
+    vec2_t texcoord; /*纹理坐标*/
+    vec3_t normal;   /*法线*/
+    vec4_t tangent; /*切线*/
+    vec4_t joint;    /*关节*/
+    vec4_t weight;  /*骨骼权重*/
 } vertex_t;
 
 /* mesh loading/releasing */

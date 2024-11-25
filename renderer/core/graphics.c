@@ -68,7 +68,7 @@ struct program {
     int double_sided;
     int enable_blend;
     /* for shaders */
-    void *shader_attribs[3];
+    void *shader_attribs[3];  /*有三个元素，每个就是一个顶点属性， 因为每次绘制一个三角形，所以刚好三个顶点*/
     void *shader_varyings;
     void *shader_uniforms;  /*该shader的uniform参数列表*/
     /* for clipping */
@@ -105,7 +105,7 @@ program_t *program_create(
     }
     program->shader_varyings = malloc(sizeof_varyings);
     memset(program->shader_varyings, 0, sizeof_varyings);
-    program->shader_uniforms = malloc(sizeof_uniforms);
+    program->shader_uniforms = malloc(sizeof_uniforms); /*把shader的外部全局变量的空间，先预留出来，以后设置*/
     memset(program->shader_uniforms, 0, sizeof_uniforms);
     for (i = 0; i < MAX_VARYINGS; i++) {
         program->in_varyings[i] = malloc(sizeof_varyings);
@@ -536,6 +536,7 @@ void graphics_draw_triangle(framebuffer_t *framebuffer, program_t *program) {
 
     /* execute vertex shader */
     for (i = 0; i < 3; i++) {
+        /*对三个顶点，逐个进行 顶点shader*/
         vec4_t clip_coord = program->vertex_shader(program->shader_attribs[i],
                                                    program->in_varyings[i],
                                                    program->shader_uniforms);

@@ -21,10 +21,10 @@ typedef struct {
 } blinn_varyings_t;
 
 typedef struct {
-    vec3_t light_dir;
+    vec3_t light_dir; /*光线方向*/
     vec3_t camera_pos;
-    mat4_t model_matrix;
-    mat3_t normal_matrix;
+    mat4_t model_matrix; 
+    mat3_t normal_matrix; 
     mat4_t light_vp_matrix;
     mat4_t camera_vp_matrix;
     mat4_t *joint_matrices;
@@ -33,15 +33,15 @@ typedef struct {
     float punctual_intensity;
     texture_t *shadow_map;
     /* surface parameters */
-    vec4_t basecolor;
-    float shininess;
-    texture_t *diffuse_map;
-    texture_t *specular_map;
-    texture_t *emission_map;
+    vec4_t basecolor;   /*基础色*/
+    float shininess;    /*光滑度*/
+    texture_t *diffuse_map; /*漫反射贴图*/
+    texture_t *specular_map; /*镜面反射（高光）贴图*/
+    texture_t *emission_map;  /*自发光贴图*/
     /* render controls */
-    float alpha_cutoff;
-    int shadow_pass;
-} blinn_uniforms_t;
+    float alpha_cutoff; /*透明度阈值*/
+    int shadow_pass; /*是否渲染阴影*/
+} blinn_uniforms_t;   /**/
 
 vec4_t blinn_vertex_shader(void *attribs, void *varyings, void *uniforms);
 vec4_t blinn_fragment_shader(void *varyings, void *uniforms,
