@@ -126,6 +126,7 @@ typedef struct {
 static material_t get_material(blinn_varyings_t *varyings,
                                blinn_uniforms_t *uniforms,
                                int backface) {
+    /*获得当前点的纹理坐标*/
     vec2_t texcoord = varyings->texcoord;
     vec3_t diffuse, specular, normal, emission;
     float alpha, shininess;
@@ -157,6 +158,7 @@ static material_t get_material(blinn_varyings_t *varyings,
         emission = vec3_from_vec4(sample);
     }
 
+    /*好几个属性，都是通过纹理坐标获得*/
     material.diffuse = diffuse;
     material.specular = specular;
     material.alpha = alpha;

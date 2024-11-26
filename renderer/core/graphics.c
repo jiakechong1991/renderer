@@ -65,15 +65,15 @@ struct program {
     int sizeof_attribs;
     int sizeof_varyings;
     int sizeof_uniforms;
-    int double_sided;
+    int double_sided; 
     int enable_blend;
     /* for shaders */
     void *shader_attribs[3];  /*有三个元素，每个就是一个顶点属性， 因为每次绘制一个三角形，所以刚好三个顶点*/
     void *shader_varyings;
     void *shader_uniforms;  /*该shader的uniform参数列表*/
     /* for clipping */
-    vec4_t in_coords[MAX_VARYINGS];
-    vec4_t out_coords[MAX_VARYINGS];
+    vec4_t in_coords[MAX_VARYINGS];  /*存储 顶点shader处理后 输出坐标， 顶点shader一次处理一个点*/
+    vec4_t out_coords[MAX_VARYINGS]; /*存储的 可见的顶点(in_coords经过裁减剔除后的结果)*/
     void *in_varyings[MAX_VARYINGS];
     void *out_varyings[MAX_VARYINGS];
 };
@@ -276,10 +276,17 @@ static int is_vertex_visible(vec4_t v) {
     return fabs(v.x) <= v.w && fabs(v.y) <= v.w && fabs(v.z) <= v.w;
 }
 
-static int clip_triangle(
+static int clip_triangle(  /*裁减剔除 视锥体 外的图元*/
         int sizeof_varyings,
         vec4_t in_coords[MAX_VARYINGS], void *in_varyings[MAX_VARYINGS],
         vec4_t out_coords[MAX_VARYINGS], void *out_varyings[MAX_VARYINGS]) {
+    /*
+    params:
+    in:
+    out:
+    return: 可见的顶点数
+    
+    */
     int v0_visible = is_vertex_visible(in_coords[0]);
     int v1_visible = is_vertex_visible(in_coords[1]);
     int v2_visible = is_vertex_visible(in_coords[2]);
@@ -434,6 +441,7 @@ static void draw_fragment(framebuffer_t *framebuffer, program_t *program,
 
     /* execute fragment shader */
     discard = 0;
+    /*获得该像素(屏幕空间)的颜色结果*/
     color = program->fragment_shader(program->shader_varyings,
                                      program->shader_uniforms,
                                      &discard,
@@ -454,7 +462,7 @@ static void draw_fragment(framebuffer_t *framebuffer, program_t *program,
         color.z = color.z * color.w + float_from_uchar(dst_b) * (1 - color.w);
     }
 
-    /* write color and depth */
+    /* write color and depth 写到缓冲区 */
     framebuffer->color_buffer[index * 4 + 0] = float_to_uchar(color.x);
     framebuffer->color_buffer[index * 4 + 1] = float_to_uchar(color.y);
     framebuffer->color_buffer[index * 4 + 2] = float_to_uchar(color.z);
@@ -462,7 +470,8 @@ static void draw_fragment(framebuffer_t *framebuffer, program_t *program,
 }
 
 static int rasterize_triangle(framebuffer_t *framebuffer, program_t *program,
-                              vec4_t clip_coords[3], void *varyings[3]) {
+                              vec4_t clip_coords[3], 
+                              void *varyings[3]) {
     int width = framebuffer->width;
     int height = framebuffer->height;
     vec3_t ndc_coords[3];
@@ -480,7 +489,8 @@ static int rasterize_triangle(framebuffer_t *framebuffer, program_t *program,
     }
 
     /* back-face culling [背面剔除]*/
-    backface = is_back_facing(ndc_coords);
+    backface = is_back_facing(ndc_coords); 
+    /*判定三角形是否面积>0, 否则不再绘制*/
     if (backface && !program->double_sided) {
         return 1;
     }
@@ -497,8 +507,8 @@ static int rasterize_triangle(framebuffer_t *framebuffer, program_t *program,
         screen_depths[i] = window_coord.z;
     }
 
-    /* perform rasterization */
-    bbox = find_bounding_box(screen_coords, width, height);
+    /* perform rasterization[光栅化] */
+    bbox = find_bounding_box(screen_coords, width, height); /*计算三角形包围盒*/
     for (x = bbox.min_x; x <= bbox.max_x; x++) {
         for (y = bbox.min_y; y <= bbox.max_y; y++) {
             vec2_t point = vec2_new((float)x + 0.5f, (float)y + 0.5f);
@@ -543,13 +553,36 @@ void graphics_draw_triangle(framebuffer_t *framebuffer, program_t *program) {
         program->in_coords[i] = clip_coord;
     }
 
-    /* triangle clipping[裁减] */
+    /* triangle clipping[裁减]: 也称为图元(primitive)裁减(clipping)剔除
+    一般作用在顶点处理后，光栅化之前
+    主要目的是：去除位于视锥体外的图元(点，线段，三角形)，确保只有视锥体中的区域，才被绘制，避免浪费计算资源
+    主要步骤：
+    1. 根据视口坐标，近裁减面，远裁减面，确定有效视锥体
+    2. 判定：
+        1. 如果整个图元都在视体内，则保留该图元。
+        2. 如果部分图元在视体内，则通过线性插值算法生成新的顶点，并根据这些顶点重新构造出一个位于视体内的新图元。
+        3. 如果整个图元都在视体外或被用户定义裁剪平面裁剪，则丢弃该图元。
+
+     */
     num_vertices = clip_triangle(program->sizeof_varyings,
                                  program->in_coords, program->in_varyings,
                                  program->out_coords, program->out_varyings);
 
-    /* triangle[三角形] assembly[装配] */
-    for (i = 0; i < num_vertices - 2; i++) {
+    /* triangle[三角形] assembly[装配] : 也称为 图元装配(primitive assembly)
+    主要作用： 顶点shader和裁减后，得到的是一堆没有关系的顶点，需要将他们组装成三角形，那这些三角形按照什么形式组装呢？
+    在opengl中，大致有几类组装方式：
+    1. 点形式： 
+        1. GL_POINTS： 所有顶点不连线
+    2. 线段形式：
+        1. GL_LINES： 两个顶点一组(顶点不重复)，组成线段
+        2，3，4，。。。。好几种方式
+    3. 三角形形式：
+        1. GL_TRIANGLE_FAN： 三角形扇。以某个顶点作为公用顶点，和其他相邻的两个顶点相连接，组合成多个相邻的三角形，形成三角形扇。
+    4. 四边形方式：
+        略
+    */
+    for (i = 0; i < num_vertices - 2; i++) {  /*对n个可见顶点，绘制 (n-2)个 三角形， */
+        /*循环体，对应一个三角形*/
         int index0 = 0;
         int index1 = i + 1;
         int index2 = i + 2;
@@ -557,6 +590,7 @@ void graphics_draw_triangle(framebuffer_t *framebuffer, program_t *program) {
         void *varyings[3];
         int is_culled;
 
+        /*可见的 三个 顶点坐标*/
         clip_coords[0] = program->out_coords[index0];
         clip_coords[1] = program->out_coords[index1];
         clip_coords[2] = program->out_coords[index2];
